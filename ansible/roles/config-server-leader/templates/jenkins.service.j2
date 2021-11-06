@@ -1,0 +1,10 @@
+[Unit]
+Description="Jenkins is an open source automation server"
+
+[Service]
+User=root
+WorkingDirectory=/home/vagrant
+ExecStart=java -jar jenkins.war
+
+[Install]
+WantedBy=multi-user.target

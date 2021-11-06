@@ -1,0 +1,14 @@
+client {
+    enabled = true
+    servers = ["{{ server_ips | map('regex_replace', '(.*)', '\\1:4647')  | list | join ('\",\"') }}"]
+    network_interface = "eth1"
+}
+plugin "docker" {
+  config {
+    gc {
+      dangling_containers {
+        enabled = false
+      }
+    } 
+  }
+}

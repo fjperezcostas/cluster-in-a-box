@@ -1,0 +1,40 @@
+- name: copy consul tls server certificate
+  copy:
+    content: "{{ consul_server_cert }}"
+    dest: /etc/consul.d/consul-cert.pem
+    owner: root
+    group: root
+    mode: 644
+
+- name: copy consul tls server key
+  copy:
+    content: "{{ consul_server_key }}"
+    dest: /etc/consul.d/consul-key.pem
+    owner: root
+    group: root
+    mode: 644
+
+- name: copy consul server.hcl file
+  template:
+    src: ./templates/consul-server-config.hcl.j2
+    dest: /etc/consul.d/server.hcl
+    owner: consul
+    group: consul
+    mode: 644
+
+- name: copy nomad server.hcl file
+  template:
+    src: ./templates/nomad-server-config.hcl.j2
+    dest: /etc/nomad.d/server.hcl
+    
+- name: start consul service
+  systemd:
+    name: consul
+    state: started
+    enabled: yes
+
+- name: start nomad service
+  systemd:
+    name: nomad
+    state: started
+    enabled: yes

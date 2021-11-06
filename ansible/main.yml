@@ -1,0 +1,19 @@
+- hosts: all 
+  become: true
+  roles: 
+    - common-config
+
+- hosts: server_nodes
+  become: true
+  roles: 
+    - config-server-agents
+
+- hosts: client_nodes
+  become: true
+  roles: 
+    - config-client-agents
+
+- hosts: server-1
+  become: true
+  roles: 
+    - config-server-leader
