@@ -12,7 +12,8 @@ cluster-in-a-box virtualizes a server cluster in your own computer. It boots N s
 1. You have to install [VirtualBox](https://www.virtualbox.org/), [Ansible](https://www.ansible.com/) and [Vagrant](https://www.vagrantup.com/) previously.
 2. Clone the project `git clone https://github.com/fjperezcostas/cluster-in-a-box.git`
 3. `cd cluster-in-a-box/ && vagrant up` and wait until everything is deployed.
-4. Once Ansible ends it will show you the necessary token to start with Jenkins config.
+4. In the middle of Vagrant execution when Ansible provision starts, it will ask you for Vault password to decrypt the file `ansible/group_vars/all/vault.yml` which contains the neccessary secrets to deploy the cluster. Just write `123456`.
+5. Once Ansible ends it will show you the necessary token to start with Jenkins config.
 ```
     TASK [config-server-leader : print init password jenkins] **********************
     ok: [server-1] => {

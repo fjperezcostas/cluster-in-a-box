@@ -44,6 +44,7 @@ Vagrant.configure("2") do |config|
                 client.vm.provision "ansible" do |ansible|
                     ansible.playbook = "ansible/main.yml"
                     ansible.limit = "all"
+                    ansible.raw_arguments = "--ask-vault-pass"
                     ansible.groups = {
                       "server_nodes" => serverIds,
                       "client_nodes" => clientIds
