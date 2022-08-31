@@ -1,5 +1,23 @@
-become_user: root
-consul_version: 1.9.3
-nomad_version: 1.0.3
-datacenter_name: local-cluster
+become_user: "root"
+datacenter: "local-cluster"
 ip_address: "{{ ansible_eth1.ipv4.address }}"
+consul_version: "1.13.1"
+consul_port: "8500"
+nomad_version: "1.3.5"
+nomad_port: "4646"
+envoy_version: "v1.23-latest"
+envoy_listeners:
+- name: "consul"
+  port: "{{ cluster_consul_port }}"
+- name: "nomad"
+  port: "{{ cluster_nomad_port }}"
+- name: "fabio_ui"
+  port: "{{ cluster_fabio_ui_port }}"
+- name: "fabio_lb"
+  port: "{{ cluster_fabio_lb_port }}"
+openldap_version: "1.5.0"
+authz_server_docker: "frjperezcostas/authz-server:{{ authz_server_version }}"
+authz_server_version: "latest"
+authz_server_port: "{{ cluster_authz_server_port }}"
+fabio_ui_port: "9998"
+fabio_lb_port: "9999"

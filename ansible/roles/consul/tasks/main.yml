@@ -1,0 +1,125 @@
+- name: download binary
+  get_url:
+    url: https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip
+    dest: /tmp
+
+- name: extract zip
+  unarchive:
+    src: /tmp/consul_{{ consul_version }}_linux_amd64.zip
+    dest: /usr/bin
+    remote_src: yes
+
+- name: set binary owner
+  file:
+    path: /usr/bin/consul
+    owner: root
+    group: root
+
+- name: autocomplete installation
+  command: consul -autocomplete-install && complete -C /usr/bin/consul consul
+  ignore_errors: yes
+
+- name: create group
+  group:
+    name: consul
+
+- name: create user
+  user:
+    name: consul
+    group: consul
+    home: /etc/consul.d
+    shell: /bin/false
+
+- name: create /opt/consul directory
+  file:
+    path: /opt/consul
+    state: directory
+
+- name: set /opt/consul owner
+  file:
+    path: /opt/consul
+    owner: consul
+    group: consul
+
+- name: install tls ca
+  copy:
+    content: "{{ consul_tls_ca_cert }}"
+    dest: /etc/consul.d/consul-ca.pem
+    owner: root
+    group: root
+    mode: 644
+
+- name: install tls ca key
+  copy:
+    content: "{{ consul_tls_ca_key }}"
+    dest: /etc/consul.d/consul-ca-key.pem
+    owner: root
+    group: root
+    mode: 644
+
+- name: copy consul.hcl file
+  template:
+    src: ./templates/consul-config.hcl.j2
+    dest: /etc/consul.d/consul.hcl
+    owner: consul
+    group: consul  
+    mode: 644
+
+- name: copy consul.service file
+  copy:
+    src: ./files/consul.service
+    dest: /usr/lib/systemd/system/consul.service
+    owner: root
+    group: root
+    mode: 644
+
+- name: copy tls server certificate
+  copy:
+    content: "{{ consul_tls_server_cert }}"
+    dest: /etc/consul.d/consul-cert.pem
+    owner: root
+    group: root
+    mode: 644
+  when: "'cluster_servers' in group_names"
+
+- name: copy tls server key
+  copy:
+    content: "{{ consul_tls_server_key }}"
+    dest: /etc/consul.d/consul-key.pem
+    owner: root
+    group: root
+    mode: 644
+  when: "'cluster_servers' in group_names"
+
+- name: copy server.hcl file
+  template:
+    src: ./templates/consul-server-config.hcl.j2
+    dest: /etc/consul.d/server.hcl
+    owner: consul
+    group: consul
+    mode: 644
+  when: "'cluster_servers' in group_names"
+
+- name: copy client tls certificate
+  copy:
+    content: "{{ consul_tls_client_cert }}"
+    dest: /etc/consul.d/consul-cert.pem
+    owner: root
+    group: root
+    mode: 644
+  when: "'cluster_clients' in group_names"
+
+- name: copy client tls certificate key
+  copy:
+    content: "{{ consul_tls_client_key }}"
+    dest: /etc/consul.d/consul-key.pem
+    owner: root
+    group: root
+    mode: 644
+  when: "'cluster_clients' in group_names"
+
+- name: start service
+  systemd:
+    name: consul
+    state: started
+    enabled: yes

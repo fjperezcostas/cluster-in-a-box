@@ -1,19 +1,28 @@
-- hosts: all 
+- hosts: cluster_servers
   become: true
-  roles: 
-    - common-config
+  roles:
+    - unzip
+    - consul
+    - nomad
 
-- hosts: server_nodes
+- hosts: cluster_clients
   become: true
   roles: 
-    - config-server-agents
+    - unzip
+    - docker
+    - consul
+    - nomad
 
-- hosts: client_nodes
+- hosts: cluster_gw
   become: true
   roles: 
-    - config-client-agents
+    - docker
+    - openldap
+    - authz-server
+    - envoy
 
 - hosts: server-1
   become: true
   roles: 
-    - config-server-leader
+    - fabio
+    - http-echo

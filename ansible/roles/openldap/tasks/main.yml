@@ -1,0 +1,27 @@
+- name: create 'openldap' temporal directory
+  file:
+    path: /tmp/openldap
+    state: directory
+
+- name: copy *.ldif files
+  copy:
+    src: ./files
+    dest: /tmp/openldap
+
+- name: pull openldap image
+  command: "docker pull osixia/openldap:{{ openldap_version }}"
+
+- name: execute openldap
+  command: |
+    docker run \
+    --name=ldap \
+    --network=host \
+    --detach \
+    --rm \
+    --volume /tmp/openldap/:/container/service/slapd/assets/config/bootstrap/ldif/custom/
+    --env LDAP_ORGANISATION=ciab \
+    --env LDAP_DOMAIN=localhost \
+    --env LDAP_BASE_DN=dc=localhost \
+    --env LDAP_ADMIN_PASSWORD=123456 \
+    osixia/openldap:{{ openldap_version }} \
+    --copy-service

@@ -1,0 +1,41 @@
+job "http-echo" {
+    datacenters = ["{{ datacenter }}"]
+    type = "service"
+
+    group "http-server" {
+        count = 1
+        network {
+            port "http" {
+                to = 80
+            }
+        }
+
+        service {
+            name = "http-echo"
+            tags = ["urlprefix-/"]
+            port = "http"
+            check {
+                name     = "alive"
+                type     = "http"
+                path     = "/"
+                interval = "10s"
+                timeout  = "2s"
+            }
+        }
+
+        restart {
+            attempts = 2
+            interval = "30m"
+            delay = "15s"
+            mode = "fail"
+        }
+
+        task "deploy-server" {
+            driver = "docker"
+            config {
+                image = "ealen/echo-server:latest"
+                ports = ["http"]
+            }
+        }
+    }
+}

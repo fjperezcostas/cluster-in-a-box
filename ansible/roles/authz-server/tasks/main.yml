@@ -1,0 +1,11 @@
+- name: pull authz-server image
+  command: "docker pull {{ authz_server_docker }}"
+
+- name: execute authz-server
+  command: |
+    docker run \
+    --name=authz-server \
+    --network=host \
+    --detach \
+    --rm \
+    {{ authz_server_docker }}

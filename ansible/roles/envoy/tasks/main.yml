@@ -1,0 +1,38 @@
+- name: create 'envoy' temporal directory
+  file:
+    path: /tmp/envoy
+    state: directory
+
+- name: create 'envoy/tls' temporal directory
+  file:
+    path: /tmp/envoy/tls
+    state: directory
+
+- name: copy envoy.yaml file
+  template:
+    src: ./templates/envoy.yaml.j2
+    dest: /tmp/envoy/envoy.yaml
+
+- name: copy envoy.crt.pem file
+  template:
+    src: ./templates/envoy.crt.pem.j2
+    dest: /tmp/envoy/tls/envoy.crt.pem
+
+- name: copy envoy.key.pem file
+  template:
+    src: ./templates/envoy.key.pem.j2
+    dest: /tmp/envoy/tls/envoy.key.pem
+
+- name: pull envoy image
+  command: "docker pull envoyproxy/envoy:{{ envoy_version }}"
+
+- name: execute envoy
+  command: | 
+    docker run \
+    --name=envoy \
+    --network=host \
+    --detach \
+    --rm \
+    --volume /tmp/envoy/envoy.yaml:/etc/envoy/envoy.yaml \
+    --volume /tmp/envoy/tls/:/etc/envoy/tls \
+    envoyproxy/envoy:{{ envoy_version}}
