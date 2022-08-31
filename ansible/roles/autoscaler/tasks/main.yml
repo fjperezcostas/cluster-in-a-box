@@ -1,0 +1,7 @@
+- name: copy autoscaler.hcl file
+  template:
+    src: ./templates/autoscaler.hcl.j2
+    dest: /home/vagrant/autoscaler.hcl
+
+- name: run autoscaler job
+  command: nomad run /home/vagrant/autoscaler.hcl

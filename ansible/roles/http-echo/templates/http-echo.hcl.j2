@@ -1,0 +1,57 @@
+job "http-echo" {
+    datacenters = ["{{ datacenter }}"]
+    type = "service"
+    group "http-echo" {
+        count = 1
+        network {
+            port "http" {
+                to = 80
+            }
+        }
+        scaling {
+            min     = 1
+            max     = 2
+            enabled = true
+            policy {
+                evaluation_interval = "2s"
+                cooldown            = "5s"
+                check "cpu_usage" {
+                    source = "prometheus"
+                    query  = "avg(nomad_client_allocs_cpu_total_percent{task='http-echo'})"
+                    strategy "target-value" {
+                        target = 50
+                    }
+                }
+            }
+        }
+        service {
+            name = "http-echo"
+            tags = ["urlprefix-/http-echo strip=/http-echo"]
+            port = "http"
+            check {
+                name     = "http-checker"
+                type     = "http"
+                path     = "/"
+                interval = "10s"
+                timeout  = "2s"
+            }
+        }
+        restart {
+            attempts = 2
+            interval = "30m"
+            delay = "15s"
+            mode = "fail"
+        }
+        task "http-echo" {
+            driver = "docker"
+            config {
+                image = "ealen/echo-server:latest"
+                ports = ["http"]
+            }
+            resources {
+                cpu    = 100
+                memory = 128
+            }
+        }
+    }
+}

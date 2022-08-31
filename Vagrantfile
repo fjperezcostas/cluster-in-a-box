@@ -1,57 +1,56 @@
 Vagrant.configure("2") do |config|
 
     # basic config
-    NETWORK_NAME = "local-cluster"
-    LINUX_DISTRO = "bento/ubuntu-20.04"
-    SERVER_NODES_COUNT = 1
-    CLIENT_NODES_COUNT = 1
-    
+    NETWORK_NAME         = "local-cluster"
+    LINUX_DISTRO         = "bento/ubuntu-22.04"
+    CLUSTER_NODES_COUNT  = 1
+    CONSUL_SERVERS_COUNT = 1
+    NOMAD_SERVERS_COUNT  = 1
+    CONSUL_PORT          = 10000
+    NOMAD_PORT           = 10001
+    FABIO_UI_PORT        = 10002
+    FABIO_LB_PORT        = 10003
+
     ClusterNode = Struct.new(:id, :ip)
 
-    clusterNodes = []
+    nodes = []
 
-    (1..SERVER_NODES_COUNT).each do |i|
-        newServer = ClusterNode.new("server-#{i}","10.0.0.#{i+3}")
-        clusterNodes << newServer
-        config.vm.define newServer.id do |server|
-            server.vm.box = LINUX_DISTRO
-            server.vm.hostname = newServer.id
-            server.vm.network "private_network", ip: newServer.ip, virtualbox__intnet: NETWORK_NAME
-            if i == 1
-                server.vm.network "forwarded_port", guest: 8500, host: 9000     # consul
-                server.vm.network "forwarded_port", guest: 4646, host: 9001     # nomad
-                server.vm.network "forwarded_port", guest: 8080, host: 9002     # jenkins
-            end
-        end
+    config.vm.provider "virtualbox" do |v|
+        v.memory = 1024
+        v.cpus = 1
     end
 
-    (1..CLIENT_NODES_COUNT).each do |i|
-        newClient = ClusterNode.new("client-#{i}","10.0.0.#{i+SERVER_NODES_COUNT+3}")
-        clusterNodes << newClient
-        config.vm.define newClient.id do |client|
-            client.vm.box = LINUX_DISTRO
-            client.vm.hostname = newClient.id
-            client.vm.network "private_network", ip: newClient.ip, virtualbox__intnet: NETWORK_NAME
+    (1..CLUSTER_NODES_COUNT).each do |i|
+        newnode = ClusterNode.new("node-#{i.to_s.rjust(2, '0')}", "10.0.0.#{i + 2}")
+        nodes << newnode
+        config.vm.define newnode.id do |node|
+            node.vm.box = LINUX_DISTRO            
+            node.vm.hostname = newnode.id
+            node.vm.network "private_network", ip: newnode.ip, virtualbox__intnet: NETWORK_NAME
             if i == 1
-                client.vm.network "forwarded_port", guest: 9998, host: 9003     # fabio ui
-                client.vm.network "forwarded_port", guest: 9999, host: 9999     # fabio lb
+                node.vm.network "forwarded_port", guest: CONSUL_PORT, host: CONSUL_PORT
+                node.vm.network "forwarded_port", guest: NOMAD_PORT, host: NOMAD_PORT
+                node.vm.network "forwarded_port", guest: FABIO_UI_PORT, host: FABIO_UI_PORT
+                node.vm.network "forwarded_port", guest: FABIO_LB_PORT, host: FABIO_LB_PORT
             end
-            if i == CLIENT_NODES_COUNT
-                serverNodes = clusterNodes.select{ |node| node.id.start_with?("server-")}
-                serverIds = serverNodes.map { |node| node.id }
-                serverIps = serverNodes.map { |node| node.ip }
-                clientIds = clusterNodes.select{ |node| node.id.start_with?("client-")}.map { |node| node.id }
-                client.vm.provision "ansible" do |ansible|
+            if i == CLUSTER_NODES_COUNT
+                node.vm.provision "ansible" do |ansible|
                     ansible.playbook = "ansible/main.yml"
-                    ansible.limit = "all"
-                    ansible.raw_arguments = "--ask-vault-pass"
+                    ansible.limit = "all"                    
+                    ansible.raw_arguments = "--vault-password-file=.vault_pass"
                     ansible.groups = {
-                      "server_nodes" => serverIds,
-                      "client_nodes" => clientIds
+                      "consul_servers" => nodes.first(CONSUL_SERVERS_COUNT).map { |node| node.id },
+                      "consul_clients" => nodes.drop(CONSUL_SERVERS_COUNT).map { |node| node.id },
+                      "nomad_servers" => nodes.first(NOMAD_SERVERS_COUNT).map { |node| node.id },
                     }
                     ansible.extra_vars = {
-                        server_nodes_count: SERVER_NODES_COUNT,
-                        server_ips: serverIps
+                        consul_servers_count: CONSUL_SERVERS_COUNT,
+                        nomad_servers_count: NOMAD_SERVERS_COUNT,
+                        cluster_node_ips: nodes.map { |node| node.ip },
+                        consul_port: CONSUL_PORT,
+                        nomad_port: NOMAD_PORT,
+                        fabio_ui_port: FABIO_UI_PORT,
+                        fabio_lb_port: FABIO_LB_PORT
                     }
                 end
             end

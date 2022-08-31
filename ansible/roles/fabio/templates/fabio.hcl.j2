@@ -1,0 +1,26 @@
+job "fabio" {
+  datacenters = ["{{ datacenter }}"]
+  type = "system"
+  group "fabio" {
+    network {
+      port "ui" {
+        static = {{ fabio_ui_port }}
+      }
+      port "lb" {
+        static = {{ fabio_lb_port }}
+      }
+    }
+    task "fabio" {
+      driver = "docker"
+      config {
+        image = "{{ fabio_docker_image }}"
+        network_mode = "host"
+        ports = ["lb","ui"]
+      }
+      resources {
+        cpu    = 100
+        memory = 128
+      }
+    }
+  }
+}

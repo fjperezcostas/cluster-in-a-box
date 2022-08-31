@@ -1,0 +1,28 @@
+http:
+  port: "8080"
+  session-id: "auth.session"
+
+oauth2:
+  client:
+    id: "{{ authz_server_client_id }}"
+    secret: "{{ authz_server_client_secret }}"
+  login:
+    url: "https://accounts.google.com/o/oauth2/auth?client_id=%v&redirect_uri=%v&response_type=%v&scope=%v"
+    redirect-uri: "https://localhost:10003/authz-server/oauth2/callback"
+    response-type: "code"
+    scope: "https://www.googleapis.com/auth/userinfo.email"
+  token:
+    url: "https://oauth2.googleapis.com/token"
+    grant-type: "authorization_code"
+  user-info:
+    url: "https://www.googleapis.com/oauth2/v2/userinfo"
+
+ldap:
+  url: "ldap://10.0.0.3:389"
+  base-dn: "dc=localhost"
+  admin:
+    user: "admin"
+    password: "{{ openldap_admin_password }}"
+
+jwt:
+  secret: "{{ authz_server_jwt_secret }}"

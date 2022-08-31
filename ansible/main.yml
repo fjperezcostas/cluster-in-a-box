@@ -1,19 +1,21 @@
-- hosts: all 
+- hosts: all
   become: true
-  roles: 
-    - common-config
+  order: sorted
+  serial: 1
+  roles:
+    - unzip
+    - docker
+    - consul
+    - nomad
 
-- hosts: server_nodes
+- hosts: node-01
   become: true
-  roles: 
-    - config-server-agents
-
-- hosts: client_nodes
-  become: true
-  roles: 
-    - config-client-agents
-
-- hosts: server-1
-  become: true
-  roles: 
-    - config-server-leader
+  roles:
+    - health-checker
+    - fabio
+    - prometheus
+    - autoscaler
+    - http-echo
+    - openldap
+    - authz-server
+    - envoy

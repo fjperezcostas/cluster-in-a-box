@@ -1,0 +1,16 @@
+- name: copy prometheus.yml file
+  template:
+    src: ./templates/prometheus.yml.j2
+    dest: /home/vagrant/prometheus.yml
+
+- name: copy prometheus.hcl file
+  template:
+    src: ./templates/prometheus.hcl.j2
+    dest: /home/vagrant/prometheus.hcl
+
+- name: upload prometheus.yml config to consul
+  command: curl --request PUT --data-binary @/home/vagrant/prometheus.yml http://localhost:{{ consul_internal_port }}/v1/kv/prometheus/prometheus.yml
+
+- name: run prometheus job
+  command: nomad run /home/vagrant/prometheus.hcl
+

@@ -1,0 +1,168 @@
+static_resources:
+  listeners:
+{% for listener in envoy_listeners %}
+    - name: {{ listener.name }}_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: {{ listener.port }}
+      filter_chains:
+        filters:
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: ingress_http
+              access_log:
+                - name: envoy.access_loggers.stdout
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+              route_config:
+                name: localhost
+                virtual_hosts:
+                  - name: localhost
+                    domains: ["*"]
+                    routes:
+{% if listener.name == "fabio_lb" %}
+                      - match:
+                          prefix: "/authz-server/oauth2/callback"
+                        route:
+                          cluster: {{ listener.name }}
+                        typed_per_filter_config:
+                          envoy.filters.http.ext_authz:
+                            "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                            disabled: true
+{% endif %}
+                      - match:
+                          prefix: "/"
+                        route:
+                          cluster: {{ listener.name }}
+                    response_headers_to_add:
+                      - header:
+                          key: "set-cookie"
+                          value: "%REQ(set-cookie)%"
+              http_filters:
+                - name: envoy.filters.http.ext_authz
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                    http_service:
+                      server_uri:
+                        uri: 10.0.0.3:{{ fabio_lb_internal_port }}
+                        cluster: fabio_lb
+                        timeout: 0.25s
+                      path_prefix: "/authz-server"
+                      authorization_request:
+                        allowed_headers:
+                          patterns:
+                            - exact: cookie
+                        headers_to_add:
+                          - key: x-requested-url
+                            value: "%REQ(:scheme)%://%REQ(host)%%REQ(:path)%"
+                      authorization_response:
+                        allowed_upstream_headers:
+                          patterns:
+                            - exact: set-cookie
+                - name: envoy.filters.http.router
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+            common_tls_context:
+              tls_certificates:
+                - certificate_chain:
+                    filename: "/local/envoy.crt.pem"
+                  private_key:
+                    filename: "/local/envoy.key.pem"
+{% endfor %}    
+  clusters:
+    - name: consul
+      connect_timeout: 0.25s
+      type: static
+      health_checks:
+      - timeout: 1s
+        interval: 1s
+        interval_jitter: 1s
+        unhealthy_threshold: 1
+        healthy_threshold: 1
+        tcp_health_check: {}
+      load_assignment:
+        cluster_name: consul
+        endpoints:
+          - lb_endpoints:
+{% for ip in cluster_node_ips[:consul_servers_count] %}
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: {{ ip }}
+                      port_value: {{ consul_internal_port }}
+{% endfor %}
+    - name: nomad
+      connect_timeout: 0.25s
+      type: static
+      health_checks:
+      - timeout: 1s
+        interval: 1s
+        interval_jitter: 1s
+        unhealthy_threshold: 1
+        healthy_threshold: 1
+        tcp_health_check: {}
+      load_assignment:
+        cluster_name: nomad
+        endpoints:
+          - lb_endpoints:
+{% for ip in cluster_node_ips[:nomad_servers_count] %}
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: {{ ip }}
+                      port_value: {{ nomad_internal_port }}
+{% endfor %}
+    - name: fabio_ui
+      connect_timeout: 0.25s
+      type: static
+      health_checks:
+      - timeout: 1s
+        interval: 1s
+        interval_jitter: 1s
+        unhealthy_threshold: 1
+        healthy_threshold: 1
+        tcp_health_check: {}
+      load_assignment:
+        cluster_name: fabio_ui
+        endpoints:
+          - lb_endpoints:
+{% for ip in cluster_node_ips %}
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: {{ ip }}
+                      port_value: {{ fabio_ui_internal_port }}
+{% endfor %}
+    - name: fabio_lb
+      connect_timeout: 0.25s
+      type: static
+      health_checks:
+      - timeout: 1s
+        interval: 1s
+        interval_jitter: 1s
+        unhealthy_threshold: 1
+        healthy_threshold: 1
+        tcp_health_check: {}
+      load_assignment:
+        cluster_name: fabio_lb
+        endpoints:
+          - lb_endpoints:
+{% for ip in cluster_node_ips %}
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: {{ ip }}
+                      port_value: {{ fabio_lb_internal_port }}
+{% endfor %}
+admin:
+  profile_path: /tmp/envoy.prof
+  address:
+    socket_address:
+      address: 127.0.0.1
+      port_value: 10004

@@ -1,0 +1,31 @@
+- name: copy envoy.yml file
+  template:
+    src: ./templates/envoy.yml.j2
+    dest: /home/vagrant/envoy.yml
+
+- name: copy envoy.crt.pem file
+  template:
+    src: ./templates/envoy.crt.pem.j2
+    dest: /home/vagrant/envoy.crt.pem
+
+- name: copy envoy.key.pem file
+  template:
+    src: ./templates/envoy.key.pem.j2
+    dest: /home/vagrant/envoy.key.pem
+
+- name: copy envoy.hcl file
+  template:
+    src: ./templates/envoy.hcl.j2
+    dest: /home/vagrant/envoy.hcl
+
+- name: upload envoy.yml config to consul
+  command: curl --request PUT --data-binary @/home/vagrant/envoy.yml http://localhost:{{ consul_internal_port }}/v1/kv/envoy/envoy.yml
+
+- name: upload envoy.crt.pem config to consul
+  command: curl --request PUT --data-binary @/home/vagrant/envoy.crt.pem http://localhost:{{ consul_internal_port }}/v1/kv/envoy/envoy.crt.pem
+
+- name: upload envoy.key.pem config to consul
+  command: curl --request PUT --data-binary @/home/vagrant/envoy.key.pem http://localhost:{{ consul_internal_port }}/v1/kv/envoy/envoy.key.pem
+
+- name: run envoy job
+  command: nomad run /home/vagrant/envoy.hcl

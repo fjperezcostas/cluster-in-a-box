@@ -1,0 +1,68 @@
+#jinja2: trim_blocks:False, variable_start_string:'[%' , variable_end_string:'%]'
+job "openldap" {
+  datacenters = ["[% datacenter %]"]
+  type = "service"
+  group "openldap" {    
+    count = 1
+    restart {
+      attempts = 10
+      interval = "5m"
+      delay = "25s"
+      mode = "delay"
+    }    
+    network {
+      port "ldap-port"  {
+        static = 389
+      }
+    }
+    constraint {
+        attribute = "${node.unique.name}"
+        operator  = "="
+        value     = "node-01"
+    }
+    task "openldap" {
+      driver = "docker"
+      config {
+        image = "osixia/openldap"
+        network_mode = "host"
+        volumes = [
+          "local:/container/service/slapd/assets/config/bootstrap/ldif/custom"
+        ]
+      }
+      logs {
+        max_files     = 5
+        max_file_size = 15
+      }
+      resources {
+        cpu = 100
+        memory = 128  
+      }
+      service {
+        name = "openldap"
+        port = "ldap-port"
+        check {
+          name     = "tpc-checker"
+          type     = "tcp"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+      template {
+        data        = "{{ key \"/openldap/bootstrap.ldif\" }}"
+        destination = "local/bootstrap.ldif"
+      }
+      template {
+        data        = "{{ key \"/openldap/locals.env\" }}"
+        destination = "secrets/locals.env"
+        env         = true
+      }
+    }
+  }
+  update {
+    max_parallel = 1
+    min_healthy_time = "5s"
+    healthy_deadline = "3m"
+    auto_revert = false
+    canary = 0
+  }  
+}

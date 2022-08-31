@@ -1,0 +1,26 @@
+- name: copy bootstrap.ldif file
+  copy:
+    src: ./files/bootstrap.ldif
+    dest: /home/vagrant/bootstrap.ldif
+    owner: vagrant
+    group: vagrant
+    mode: 644
+
+- name: copy locals.env file
+  template:
+    src: ./templates/locals.env.j2
+    dest: /home/vagrant/locals.env
+
+- name: copy openldap.hcl file
+  template:
+    src: ./templates/openldap.hcl.j2
+    dest: /home/vagrant/openldap.hcl
+
+- name: upload bootstrap.ldif config to consul
+  command: curl --request PUT --data-binary @/home/vagrant/bootstrap.ldif http://localhost:{{ consul_internal_port }}/v1/kv/openldap/bootstrap.ldif
+
+- name: upload locals.env config to consul
+  command: curl --request PUT --data-binary @/home/vagrant/locals.env http://localhost:{{ consul_internal_port }}/v1/kv/openldap/locals.env
+
+- name: run openldap job
+  command: nomad run /home/vagrant/openldap.hcl

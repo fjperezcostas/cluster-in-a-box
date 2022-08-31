@@ -1,0 +1,11 @@
+- name: wait until all services are up and healthy in consul
+  uri:
+    url: http://localhost:{{ consul_internal_port }}/v1/health/node/node-01?filter=Status!=passing
+    method: GET
+    return_content: yes
+    status_code: 200
+    body_format: json
+  register: result
+  until: result.json == []
+  retries: 10
+  delay: 10

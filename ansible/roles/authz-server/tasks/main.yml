@@ -1,0 +1,15 @@
+- name: copy config.yml file
+  template:
+    src: ./templates/config.yml.j2
+    dest: /home/vagrant/config.yml
+
+- name: upload bootstrap.ldif config to consul
+  command: curl --request PUT --data-binary @/home/vagrant/config.yml http://localhost:{{ consul_internal_port }}/v1/kv/authz-server/config.yml
+
+- name: copy authz-server.hcl file
+  template:
+    src: ./templates/authz-server.hcl.j2
+    dest: /home/vagrant/authz-server.hcl
+
+- name: run authz-server job
+  command: nomad run /home/vagrant/authz-server.hcl
