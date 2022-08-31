@@ -1,0 +1,19 @@
+# Frodo Buggins user
+dn: uid=107856841470403713910,dc=localhost
+objectClass: inetOrgPerson
+cn: Frodo Buggins
+uid: 107856841470403713910
+givenName: Frodo
+sn: Buggins
+displayName: Frodo Buggins
+mail: foo20379905@gmail.com
+
+# Gandalf The Grey user
+dn: uid=102950888914373964935,dc=localhost
+objectClass: inetOrgPerson
+cn: Gandalf The Grey
+uid: 102950888914373964935
+givenName: Gandalf
+sn: The Grey
+displayName: Gandalf The Grey
+mail: bar20379905@gmail.com

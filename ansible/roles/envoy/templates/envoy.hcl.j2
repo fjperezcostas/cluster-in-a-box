@@ -1,0 +1,61 @@
+#jinja2: trim_blocks:False, variable_start_string:'[%' , variable_end_string:'%]'
+job "envoy" {
+    datacenters = ["[% datacenter %]"]
+    type = "service"
+    group "envoy" {
+        count = 1
+        network {
+            port "envoy-port" {
+                static = 10004
+            }
+        }
+        constraint {
+            attribute = "${node.unique.name}"
+            operator  = "="
+            value     = "node-01"
+        }
+        service {
+            name = "envoy"
+            port = "envoy-port"
+            check {
+                name     = "http-checker"
+                type     = "http"
+                port     = "10004"
+                path     = "/"
+                interval = "10s"
+                timeout  = "2s"
+            }
+        }
+        restart {
+            attempts = 2
+            interval = "30m"
+            delay = "15s"
+            mode = "fail"
+        }
+        task "envoy" {
+            driver = "docker"
+            config {
+                image = "envoyproxy/envoy:v1.26-latest"
+                network_mode = "host"
+                ports = ["envoy-port"]
+                args = ["-c", "/local/envoy.yml"]
+            }
+            resources {
+                cpu = 100
+                memory = 128
+            }
+            template {
+                data        = "{{ key \"/envoy/envoy.yml\" }}"
+                destination = "local/envoy.yml"
+            }
+            template {
+                data        = "{{ key \"/envoy/envoy.crt.pem\" }}"
+                destination = "local/envoy.crt.pem"
+            }
+            template {
+                data        = "{{ key \"/envoy/envoy.key.pem\" }}"
+                destination = "local/envoy.key.pem"
+            }
+        }
+    }
+}

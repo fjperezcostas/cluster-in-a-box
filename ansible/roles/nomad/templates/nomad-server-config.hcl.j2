@@ -1,0 +1,9 @@
+server {
+    enabled = true
+    bootstrap_expect = {{ nomad_servers_count }}
+    server_join {
+        retry_join = ["{{ cluster_node_ips[:nomad_servers_count] | list | join ('\",\"') }}"]
+        retry_max = 3
+        retry_interval = "15s"
+    }
+}

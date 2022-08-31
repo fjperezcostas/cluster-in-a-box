@@ -1,0 +1,16 @@
+datacenter = "{{ datacenter }}"
+log_level = "DEBUG"
+data_dir = "/home/vagrant/nomad"
+bind_addr = "0.0.0.0"
+advertise {
+  http = "{{ ip_address }}"
+  rpc  = "{{ ip_address }}"
+  serf = "{{ ip_address }}"
+}
+telemetry {
+  collection_interval = "1s"
+  disable_hostname = true
+  prometheus_metrics = true
+  publish_allocation_metrics = true
+  publish_node_metrics = true
+}

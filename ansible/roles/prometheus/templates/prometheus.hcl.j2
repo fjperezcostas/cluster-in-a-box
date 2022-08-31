@@ -1,0 +1,56 @@
+#jinja2: trim_blocks:False, variable_start_string:'[%' , variable_end_string:'%]'
+job "prometheus" {
+  datacenters = ["[% datacenter %]"]
+  type        = "service"
+  group "prometheus" {
+    count = 1
+    network {
+      port "prometheus_ui" {
+        static = 9090
+      }
+    }
+    restart {
+      attempts = 2
+      interval = "30m"
+      delay    = "15s"
+      mode     = "fail"
+    }
+    ephemeral_disk {
+      size = 300
+    }
+    task "prometheus" {
+      driver = "docker"
+      config {
+        image = "prom/prometheus:latest"
+        args = [
+          "--config.file=/etc/prometheus/prometheus.yml",
+          "--web.external-url=http://localhost:[% fabio_lb_internal_port %]/prometheus"
+        ]
+        volumes = [
+          "local/prometheus.yml:/etc/prometheus/prometheus.yml",
+        ]
+        ports = ["prometheus_ui"]
+      }
+      resources {
+        cpu = 100
+        memory = 128
+      }
+      service {
+        name = "prometheus"
+        tags = ["urlprefix-/prometheus"]
+        port = "prometheus_ui"
+        check {
+          name     = "http-checker"
+          type     = "http"
+          path     = "/prometheus/-/healthy"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+      template {
+        data        = "{{ key \"/prometheus/prometheus.yml\" }}"
+        destination = "local/prometheus.yml"
+      }
+    }
+  }
+}

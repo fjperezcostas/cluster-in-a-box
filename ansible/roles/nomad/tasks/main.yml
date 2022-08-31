@@ -1,0 +1,60 @@
+- name: download binary
+  get_url:
+    url: https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_linux_amd64.zip
+    dest: /home/vagrant
+
+- name: extract zip
+  unarchive:
+    src: /home/vagrant/nomad_{{ nomad_version }}_linux_amd64.zip
+    dest: /usr/bin
+    remote_src: yes
+
+- name: set binary owner
+  file:
+    path: /usr/bin/nomad
+    owner: vagrant
+    group: vagrant
+
+- name: autocomplete installation
+  command: nomad -autocomplete-install && complete -C /usr/local/bin/nomad nomad
+  ignore_errors: yes
+
+- name: create /opt/nomad directory
+  file:
+    path: /opt/nomad
+    state: directory
+
+- name: create config folder
+  file:
+    path: /etc/nomad.d
+    state: directory
+
+- name: copy nomad.hcl file
+  template:
+    src: ./templates/nomad-config.hcl.j2
+    dest: /etc/nomad.d/nomad.hcl
+
+- name: copy nomad.service file
+  copy:
+    src: ./files/nomad.service
+    dest: /usr/lib/systemd/system/nomad.service
+    owner: root
+    group: root
+    mode: 644
+
+- name: copy server.hcl file
+  template:
+    src: ./templates/nomad-server-config.hcl.j2
+    dest: /etc/nomad.d/server.hcl
+  when: "'nomad_servers' in group_names"
+  
+- name: copy nomad-client-config.hcl file
+  template:
+    src: ./templates/nomad-client-config.hcl.j2
+    dest: /etc/nomad.d/client.hcl
+
+- name: start service
+  systemd:
+    name: nomad
+    state: started
+    enabled: yes

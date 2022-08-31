@@ -1,0 +1,63 @@
+#jinja2: trim_blocks:False, variable_start_string:'[%' , variable_end_string:'%]'
+job "authz-server" {
+    datacenters = ["[% datacenter %]"]
+    type = "service"
+    group "authz-server" {
+        count = 1
+        network {
+            port "http" {
+                to = 8080
+            }
+        }
+        scaling {
+            min     = 1
+            max     = 2
+            enabled = true
+            policy {
+                evaluation_interval = "2s"
+                cooldown            = "5s"
+                check "cpu_usage" {
+                    source = "prometheus"
+                    query  = "avg(nomad_client_allocs_cpu_total_percent{task='authz-server'})"
+                    strategy "target-value" {
+                        target = 50
+                    }
+                }
+            }
+        }
+        service {
+            name = "authz-server"
+            tags = ["urlprefix-/authz-server strip=/authz-server"]
+            port = "http"
+            check {
+                name     = "http-checker"
+                type     = "http"
+                path     = "/"
+                interval = "10s"
+                timeout  = "2s"
+            }
+        }
+        restart {
+            attempts = 2
+            interval = "30m"
+            delay = "15s"
+            mode = "fail"
+        }
+        task "authz-server" {
+            driver = "docker"
+            config {
+                image = "frjperezcostas/authz-server:latest"
+                ports = ["http"]
+                args = ["--config=/local/config.yml"]
+            }
+            resources {
+                cpu = 100
+                memory = 128
+            }
+            template {
+                data        = "{{ key \"/authz-server/config.yml\" }}"
+                destination = "local/config.yml"
+            }
+        }
+    }
+}

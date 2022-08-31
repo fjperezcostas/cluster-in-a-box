@@ -1,0 +1,21 @@
+- name: add an apt sign key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+
+- name: add apt repository for stable version
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+
+- name: install packages
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+
+- name: add vagrant user to docker group
+  user:
+    name: vagrant
+    group: docker
